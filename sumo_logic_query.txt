@@ -1,0 +1,20 @@
+// We only need logs coming from the web server
+_sourceCategory="webserver/access"
+
+// Parsing logs, we need endpoint, response time, and status
+| parse "endpoint=* response_time=* status=*" as endpoint, response_time, status
+
+// Grab only the endpoint we need being ‘/api/data’
+| where endpoint = "/api/data"
+
+// Response time has to be more than 3 seconds
+| where tonumber(response_time) > 3000
+
+// within a 10 minute window
+| timeslice 10m
+
+// count it up so we know if more than 5 occurred
+| count as slow_requests by _timeslice
+
+// Trigger if any 10 minute window has more than 5 slow requests, the alert will fire. High priority
+// Send a notification using AWS lambda to restart EC2 instance
